@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Background Remover</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background-color: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background-color: #f0f4ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .upload-subtext {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .preview-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .preview-box {
+            flex: 1;
+            min-width: 300px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .preview-header {
+            background: #f5f5f5;
+            padding: 15px;
+            font-weight: bold;
+            text-align: center;
+            color: #333;
+        }
+
+        .preview-content {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ff4757;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .success {
+            background: #2ed573;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .preview-container {
+                flex-direction: column;
+            }
+            
+            .preview-box {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖼️ Background Remover</h1>
+            <p>Remove image backgrounds and replace with white background</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Drop your image here or click to browse</div>
+                <div class="upload-subtext">Supports: PNG, JPG, JPEG, GIF, BMP, WEBP</div>
+                <input type="file" id="fileInput" accept="image/*">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+            </div>
+
+            <div class="error" id="errorMsg"></div>
+            <div class="success" id="successMsg"></div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Removing background... Please wait</p>
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <div class="preview-container">
+                    <div class="preview-box">
+                        <div class="preview-header">Original Image</div>
+                        <div class="preview-content">
+                            <img id="originalImage" class="preview-image" alt="Original">
+                        </div>
+                    </div>
+                    
+                    <div class="preview-box">
+                        <div class="preview-header">Processed Image (White Background)</div>
+                        <div class="preview-content">
+                            <img id="processedImage" class="preview-image" alt="Processed">
+                            <br><br>
+                            <a id="downloadLink" class="btn" download>📥 Download Image</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const errorMsg = document.getElementById('errorMsg');
+        const successMsg = document.getElementById('successMsg');
+        const previewSection = document.getElementById('previewSection');
+        const originalImage = document.getElementById('originalImage');
+        const processedImage = document.getElementById('processedImage');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function showError(message) {
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+            successMsg.style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            successMsg.textContent = message;
+            successMsg.style.display = 'block';
+            errorMsg.style.display = 'none';
+        }
+
+        function hideMessages() {
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+        }
+
+        function handleFile(file) {
+            hideMessages();
+            
+            // Validate file type
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showError('Please select a valid image file (PNG, JPG, JPEG, GIF, BMP, WEBP)');
+                return;
+            }
+
+            // Show original image preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+
+            // Upload and process
+            uploadImage(file);
+        }
+
+        async function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            loading.style.display = 'block';
+            previewSection.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/remove-background`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Show processed image
+                    processedImage.src = result.processed_image;
+                    downloadLink.href = result.processed_image;
+                    downloadLink.download = result.filename;
+                    
+                    previewSection.style.display = 'block';
+                    showSuccess('Background removed successfully!');
+                } else {
+                    showError(result.error || 'Failed to process image');
+                }
+            } catch (error) {
+                showError('Failed to connect to the API. Make sure the server is running on localhost:5000');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        // Test API connection on page load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                if (response.ok) {
+                    console.log('API connection successful');
+                } else {
+                    showError('API server is not responding. Please start the Flask server.');
+                }
+            } catch (error) {
+                showError('Cannot connect to API server. Please make sure the Flask server is running on localhost:5000');
+            }
+        });
+    </script>
+</body>
+</html>
